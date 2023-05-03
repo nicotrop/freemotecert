@@ -1,3 +1,19 @@
+{% style %}
+  .custom-timer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .custom-uppercase {
+    text-transform: uppercase;
+  }
+
+
+{% endstyle %}
+
 {%- for block in section.blocks -%}
   {%- case block.type -%}
     {%- when 'announcement' -%}
@@ -19,8 +35,76 @@
           {%- endif -%}
         {%- endif -%}
       </div>
+    {%- when 'countdown' -%}
+      <div class="announcement-bar color-{{ block.settings.color_scheme }}">
+        <div class="custom-timer announcement-bar__message h5">
+          {% if block.settings.text != blank %}
+            <span class="custom-uppercase">{{ block.settings.text | escape }}</span>
+          {% endif %}
+          {% if block.settings.deadline != blank %}
+            <div class="countdown-timer" data-deadline="{{ block.settings.deadline }}"></div>
+          {% endif %}
+        </div>
+      </div>
   {%- endcase -%}
 {%- endfor -%}
+
+<script>
+  
+  // Get the timer element
+  const timerElem = document.querySelector('.countdown-timer');
+
+  // Get the deadline date input in the timer element's data attribute
+  const deadlineInput = timerElem.dataset.deadline;
+
+  // Format the date we're counting down to
+  const countDownDate = new Date(deadlineInput).getTime();
+
+   // Get today's date and time
+   let now = new Date().getTime();
+
+   // Find the distance between now and the count down date
+   let distance = countDownDate - now;
+
+   // Only run the timer if the deadline has not passed otherwise display that the deadline has passed
+  if (distance > 0) {
+
+    // Update the count down every 1 second
+    const timer = setInterval( () => {
+  
+      // Update current date and time
+      now = new Date().getTime();
+  
+      // Update distance between now and deadline date
+      distance = countDownDate - now;
+  
+      // Time calculations for days, hours, minutes and seconds
+      // Calculate days by dividing the distance by the days in milliseconds
+      const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      // Calculate hours by taking the remainder of the distance divided by hours in a day
+      const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      // Calculate minutes by taking the remainder of the distance divided by minutes in an hour
+      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      // Calculate seconds by taking the remainder of the distance divided by seconds in a minute
+      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+  
+      // Display the result in the timer element
+      timerElem.innerHTML = days + "d " + hours + "h "
+      + minutes + "m " + seconds + "s ";
+  
+      // If the countdown is finished, write some text
+      if (distance < 0) {
+        clearInterval(timer);
+        timerElem.innerHTML = "Countdown Finished";
+      }
+    }, 1000);
+
+  } else {
+    timerElem.innerHTML = "Deadline has passed";
+  }
+
+  
+</script>
 
 {% schema %}
 {
@@ -90,6 +174,53 @@
           "type": "url",
           "id": "link",
           "label": "t:sections.announcement-bar.blocks.announcement.settings.link.label"
+        }
+      ]
+    },
+    {
+      "type": "countdown",
+      "name": "Countdown",
+      "settings": [
+        {
+          "type": "text",
+          "id": "text",
+          "default": "Flash Sale Ends In",
+          "label": "Enter the text to display with your countdown"
+        },
+        {
+          "type": "text",
+          "id": "deadline",
+          "default": "Jun 01, 2023 02:00:00 GMT-0500",
+          "label": "Specify the date of your deadline",
+          "info": "Format: Month Day, Year Time Timezone (ex: June 16, 2023 23:59:00 EST)"
+        },
+        {
+          "type": "select",
+          "id": "color_scheme",
+          "options": [
+            {
+              "value": "accent-1",
+              "label": "t:sections.all.colors.accent_1.label"
+            },
+            {
+              "value": "accent-2",
+              "label": "t:sections.all.colors.accent_2.label"
+            },
+            {
+              "value": "background-1",
+              "label": "t:sections.all.colors.background_1.label"
+            },
+            {
+              "value": "background-2",
+              "label": "t:sections.all.colors.background_2.label"
+            },
+            {
+              "value": "inverse",
+              "label": "t:sections.all.colors.inverse.label"
+            }
+          ],
+          "default": "background-1",
+          "label": "t:sections.all.colors.label"
         }
       ]
     }
