@@ -20,6 +20,7 @@
         display: block;
       }
     }
+
   {%- endstyle -%}
 {%- endif -%}
 
@@ -27,12 +28,23 @@
   #Banner-{{ section.id }}::after {
     opacity: {{ section.settings.image_overlay_opacity | divided_by: 100.0 }};
   }
+
+  .custom-overflow-hidden {
+    overflow: hidden;
+  }
 {%- endstyle -%}
 
 <div
   id="Banner-{{ section.id }}"
   class="banner banner--content-align-{{ section.settings.desktop_content_alignment }} banner--content-align-mobile-{{ section.settings.mobile_content_alignment }} banner--{{ section.settings.image_height }}{% if section.settings.stack_images_on_mobile and section.settings.image != blank and section.settings.image_2 != blank %} banner--stacked{% endif %}{% if section.settings.image_height == 'adapt' and section.settings.image != blank %} banner--adapt{% endif %}{% if section.settings.show_text_below %} banner--mobile-bottom{%- endif -%}{% if section.settings.show_text_box == false %} banner--desktop-transparent{% endif %}"
 >
+{% comment %} If video checkbox is selected and both video media inputs are filled out, display video {% endcomment %}
+{% if section.settings.video_checkbox and section.settings.mobile_video != blank and section.settings.desktop_video != blank %}
+  <div class="banner__media custom-overflow-hidden" id="video_container_{{ section.id }}">
+    {% comment %} JS code dynamically inserted here {% endcomment %}
+  </div>
+{% comment %} Else display regular image banner {% endcomment %}
+{% else %}
   {%- if section.settings.image != blank -%}
     <div class="banner__media media{% if section.settings.image == blank and section.settings.image_2 == blank %} placeholder{% endif %}{% if section.settings.image_2 != blank %} banner__media-half{% endif %}">
       {%- liquid
@@ -93,6 +105,8 @@
       }}
     </div>
   {%- endif -%}
+{% endif %}
+
   <div class="banner__content banner__content--{{ section.settings.desktop_content_position }} page-width">
     <div class="banner__box content-container content-container--full-width-mobile color-{{ section.settings.color_scheme }} gradient">
       {%- for block in section.blocks -%}
@@ -141,6 +155,43 @@
   </div>
 </div>
 
+<script>
+
+  //Select video container
+  let videoContainer = document.querySelector('#video_container_{{ section.id }}');
+
+  //Get window width
+  let windowWidth = window.innerWidth;
+
+  //Function to display correct video
+  const displayCorrectVideo = () => {
+    //Clear video container
+    videoContainer.innerHTML = '';
+    //If window width is less than 425px, display mobile video, else display desktop video
+    if (windowWidth < 425) {
+      //Insert mobile video using Shopify's video_tag filter
+      videoContainer.innerHTML = `{{ section.settings.mobile_video | video_tag: autoplay: true, loop: true, controls: false }}`;
+    } else {
+      //Insert desktop video using Shopify's video_tag filter
+      videoContainer.innerHTML = `{{ section.settings.desktop_video | video_tag: autoplay: true, loop: true, controls: false }}`;
+    }
+  }
+
+  //If video container exists
+  if(videoContainer) {
+    //Run displayCorrectVideo function
+    displayCorrectVideo();
+    //Add event listener to window to run function on resize
+    window.addEventListener('resize', () => {
+      //Update window width
+      windowWidth = window.innerWidth;
+      //Run displayCorrectVideo function
+      displayCorrectVideo();
+    });
+  }
+
+</script>
+
 {% schema %}
 {
   "name": "t:sections.image-banner.name",
@@ -159,6 +210,22 @@
       "type": "image_picker",
       "id": "image_2",
       "label": "t:sections.image-banner.settings.image_2.label"
+    },
+    {
+      "type": "video",
+      "id": "desktop_video",
+      "label": "Desktop Video"
+    },
+    {
+      "type": "video",
+      "id": "mobile_video",
+      "label": "Mobile Video"
+    },
+    {
+      "type": "checkbox",
+      "id": "video_checkbox",
+      "label": "Check to display video instead of image",
+      "info": "Both desktop and mobile videos must be uploaded for this to work"
     },
     {
       "type": "range",
