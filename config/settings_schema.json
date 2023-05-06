@@ -1555,6 +1555,18 @@
         "id": "cart_drawer_collection",
         "label": "t:settings_schema.cart.settings.cart_drawer.collection.label",
         "info": "t:settings_schema.cart.settings.cart_drawer.collection.info"
+      },
+      {
+        "type": "product",
+        "id": "cart_drawer_product",
+        "label": "Product",
+        "info": "Visible when product is not in cart."
+      },
+      {
+        "type": "text",
+        "id": "cart_drawer_text",
+        "label": "Headline",
+        "info": "Visible in upselling section."
       }
     ]
   }

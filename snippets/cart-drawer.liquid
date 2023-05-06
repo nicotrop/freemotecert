@@ -8,8 +8,13 @@
 <script src="{{ 'cart.js' | asset_url }}" defer="defer"></script>
 
 <style>
+
   .drawer {
     visibility: hidden;
+  }
+  /* If drawer-items is empty, hide upsell child */
+  cart-drawer-items.is-empty > .custom-upsell-wrapper {
+    display: none;
   }
 </style>
 
@@ -52,6 +57,10 @@
             <div class="cart-drawer__collection">
               {% render 'card-collection', card_collection: settings.cart_drawer_collection, columns: 1 %}
             </div>
+          {%- endif -%}
+          {% comment %} If product is selected, display in empty cart using the snippet {% endcomment %}
+          {%- if settings.cart_drawer_product != blank -%}
+            {% render 'custom-cart-upsell', product: settings.cart_drawer_product, textInput: settings.cart_drawer_text %}
           {%- endif -%}
         </div>
       {%- endif -%}
@@ -270,7 +279,8 @@
 
                         <td class="cart-item__quantity" role="cell" headers="CartDrawer-ColumnQuantity">
                           <div class="cart-item__quantity-wrapper">
-                            <quantity-input class="quantity cart-quantity">
+                            {% comment %} Added data attribute for easier manipulation {% endcomment %}
+                            <quantity-input class="quantity cart-quantity" data-currid="{{ item.variant.id }}">
                               <button class="quantity__button no-js-hidden" name="minus" type="button">
                                 <span class="visually-hidden">
                                   {{- 'products.product.quantity.decrease' | t: product: item.product.title | escape -}}
@@ -311,6 +321,7 @@
                                 type="button"
                                 class="button button--tertiary"
                                 aria-label="{{ 'sections.cart.remove_title' | t: title: item.title }}"
+                                data-currid="{{ item.variant.id }}"
                               >
                                 {% render 'icon-remove' %}
                               </button>
@@ -349,6 +360,9 @@
           </div>
           <div id="CartDrawer-CartErrors" role="alert"></div>
         </form>
+        {%- if settings.cart_drawer_product != blank -%}
+          {% render 'custom-cart-upsell', product: settings.cart_drawer_product, textInput: settings.cart_drawer_text %}
+        {%- endif -%}
       </cart-drawer-items>
       <div class="drawer__footer">
         {%- if settings.show_cart_note -%}

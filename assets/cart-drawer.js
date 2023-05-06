@@ -23,8 +23,33 @@ class CartDrawer extends HTMLElement {
     });
   }
 
+  isUpsellInCart() {
+    const upsoldVariantID = document.querySelector('product-form#upselling-form form').querySelector('[name=id]').value;
+    const allItems = document.querySelectorAll('cart-remove-button button')
+    let idsArr=[];
+    allItems.forEach(item => {
+      let id = (item.getAttribute('data-currid'));
+      idsArr = [...idsArr, id];
+    });
+    const isInCart = idsArr?.includes(upsoldVariantID)??false;
+    return isInCart;
+  }
+
+  upsellDisplayLogic(isInCart) {
+    if (isInCart) {
+      document.querySelector('.custom-upsell-wrapper').classList.add('hidden');
+    } else {
+      document.querySelector('.custom-upsell-wrapper').classList.remove('hidden');
+    }
+  }
+
   open(triggeredBy) {
     if (triggeredBy) this.setActiveElement(triggeredBy);
+
+    //Run logic to display upsell or not on cart drawer open
+    const isInCart = this.isUpsellInCart();
+    this.upsellDisplayLogic(isInCart);
+
     const cartDrawerNote = this.querySelector('[id^="Details-"] summary');
     if (cartDrawerNote && !cartDrawerNote.hasAttribute('role')) this.setSummaryAccessibility(cartDrawerNote);
     // here the animation doesn't seem to always get triggered. A timeout seem to help
@@ -63,8 +88,19 @@ class CartDrawer extends HTMLElement {
   renderContents(parsedState) {
     this.querySelector('.drawer__inner').classList.contains('is-empty') && this.querySelector('.drawer__inner').classList.remove('is-empty');
     this.productId = parsedState.id;
+
+    //Check if the upsold variant id is in the cart
+    const isInCart = this.isUpsellInCart();
+    console.log("cart-drawer renderContents isInCart: ", isInCart)
+
     this.getSectionsToRender().forEach((section => {
       const sectionElement = section.selector ? document.querySelector(section.selector) : document.getElementById(section.id);
+
+      if (this.productId === upsoldVariantID || isInCart) {
+        sectionElement.innerHTML = this.getSectionInnerHTMLModified(parsedState.sections[section.id], section.selector);
+      } else {
+        sectionElement.innerHTML = this.getSectionInnerHTML(parsedState.sections[section.id], section.selector);
+      }
       sectionElement.innerHTML =
           this.getSectionInnerHTML(parsedState.sections[section.id], section.selector);
     }));
@@ -81,6 +117,24 @@ class CartDrawer extends HTMLElement {
       .querySelector(selector).innerHTML;
   }
 
+  // Modified to exclude the custom upsell section upon reloading the cart
+  getSectionInnerHTMLModified(html, selector = '.shopify-section') {
+    const dom = new DOMParser().parseFromString(html, 'text/html');
+    // Find the section element
+    const sectionEl = dom.querySelector(selector);
+    // Exclude the custom upsell section
+    const elementToExclude = sectionEl.querySelector('.custom-upsell-wrapper');
+  
+    //If the section to exclude is truthy, then remove it from the section element
+    if (elementToExclude) {
+      const contents = sectionEl.innerHTML.replace(elementToExclude.outerHTML, '');
+      return contents;
+    } else {
+      // Element to exclude does not exist, so render the entire section
+      return sectionEl.innerHTML;
+    }
+  }
+
   getSectionsToRender() {
     return [
       {
@@ -88,7 +142,7 @@ class CartDrawer extends HTMLElement {
         selector: '#CartDrawer'
       },
       {
-        id: 'cart-icon-bubble'
+        id: 'cart-icon-bubble',
       }
     ];
   }

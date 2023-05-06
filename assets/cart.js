@@ -1,11 +1,56 @@
+//Get the variant id of the upsold variant
+const upsoldVariantID = document?.querySelector('product-form#upselling-form form')?.querySelector('[name=id]')?.value;
+
+function isUpsellInCart() {
+  const allItems = document.querySelectorAll('cart-remove-button button')
+  let idsArr=[];
+  allItems.forEach(item => {
+    let id = (item.getAttribute('data-currid'));
+    idsArr = [...idsArr, id];
+  });
+  const isInCart = idsArr?.includes(upsoldVariantID)??false;
+  return {
+    isInCart,
+    allItems
+  };
+}
+
 class CartRemoveButton extends HTMLElement {
   constructor() {
     super();
 
     this.addEventListener('click', (event) => {
+      //Prevent the default behaviour of the button
       event.preventDefault();
+      //Select the cart-items or cart-drawer-items component depending on where the button is
       const cartItems = this.closest('cart-items') || this.closest('cart-drawer-items');
-      cartItems.updateQuantity(this.dataset.index, 0);
+
+      //If there is an upsold variant
+      if(upsoldVariantID){
+      //Select the current button based on the event's closest element
+      const buttonElement = event.target.closest('cart-remove-button').querySelector('button');
+      //Extract id of the variant being removed
+      const curridValue = buttonElement.getAttribute('data-currid');
+      // //Check if the upsold variant is in the cart
+      const { isInCart, allItems } = isUpsellInCart();
+      console.log("Remove button component", isInCart);
+
+
+        //And if the variant being removed is the upsold variant or if there is only one item remaining in the cart
+        if (curridValue === upsoldVariantID || allItems.length === 1 || !isInCart) {
+          //Re-render to show the upsell
+          cartItems.updateQuantity(this.dataset.index, 0, name, "keep");
+          //Otherwise, if the variant being removed is not the upsold variant AND ID NOT PRESENT IN THE CART
+        } else {
+          //Don't re-render to keep the upsell
+          cartItems.updateQuantity(this.dataset.index, 0, name, "exclude");
+        }
+
+      //If there is no upsold variant at all
+      } else {
+        //Default behaviour
+        cartItems.updateQuantity(this.dataset.index, 0);
+      }
     });
   }
 }
@@ -27,10 +72,13 @@ class CartItems extends HTMLElement {
   cartUpdateUnsubscriber = undefined;
 
   connectedCallback() {
+    // Subscribe to cart updates so we know when to re-render
     this.cartUpdateUnsubscriber = subscribe(PUB_SUB_EVENTS.cartUpdate, (event) => {
+      // If the event was triggered by this component, don't re-render
       if (event.source === 'cart-items') {
         return;
       }
+
       this.onCartUpdate();
     });
   }
@@ -42,7 +90,26 @@ class CartItems extends HTMLElement {
   }
 
   onChange(event) {
-    this.updateQuantity(event.target.dataset.index, event.target.value, document.activeElement.getAttribute('name'));
+    
+    if(upsoldVariantID){
+
+      // //Check if the upsold variant is in the cart
+      const { isInCart } = isUpsellInCart();
+      console.log("Cart component onChange function", isInCart);
+
+      //If the upsold variant is in the cart
+      if (isInCart) {
+        //Skip re-rendering of the upsell component
+        this.updateQuantity(event.target.dataset.index, event.target.value, document.activeElement.getAttribute('name'), "exclude");
+      } else {
+        //Otherwise, re-render the upsell component
+        this.updateQuantity(event.target.dataset.index, event.target.value, document.activeElement.getAttribute('name'), "keep");
+      }
+    //If there is no upsold variant, execute default function
+    } else {
+      this.updateQuantity(event.target.dataset.index, event.target.value, document.activeElement.getAttribute('name'));
+    }
+
   }
 
   onCartUpdate() {
@@ -57,6 +124,7 @@ class CartItems extends HTMLElement {
         console.error(e);
       });
   }
+  
 
   getSectionsToRender() {
     return [
@@ -83,7 +151,7 @@ class CartItems extends HTMLElement {
     ];
   }
 
-  updateQuantity(line, quantity, name) {
+  updateQuantity(line, quantity, name, action) {
     this.enableLoading(line);
 
     const body = JSON.stringify({
@@ -115,11 +183,31 @@ class CartItems extends HTMLElement {
         if (cartFooter) cartFooter.classList.toggle('is-empty', parsedState.item_count === 0);
         if (cartDrawerWrapper) cartDrawerWrapper.classList.toggle('is-empty', parsedState.item_count === 0);
 
+
         this.getSectionsToRender().forEach((section => {
           const elementToReplace = 
             document.getElementById(section.id).querySelector(section.selector) || document.getElementById(section.id);
-          elementToReplace.innerHTML = 
-            this.getSectionInnerHTML(parsedState.sections[section.section], section.selector);
+          
+            //If upsold variant exists and the value for action is either reload or skip
+           if (upsoldVariantID && (action === "keep" || action === "exclude") ){
+              //If action is reload, re-render the entire section
+             if(action === "keep") {
+               console.log("keep");
+               elementToReplace.innerHTML = 
+               this.getSectionInnerHTML(parsedState.sections[section.section], section.selector);
+             } else {
+              //Otherwise, re-render the section excluding the upsell component
+               console.log("exclude");
+               elementToReplace.innerHTML =
+               this.getSectionInnerHTMLModified(parsedState.sections[section.section], section.selector);
+             }
+           } else {
+            //Otherwise, follow default behavior
+              console.log("default");
+              elementToReplace.innerHTML = 
+              this.getSectionInnerHTML(parsedState.sections[section.section], section.selector);
+           }
+
         }));
         const updatedValue = parsedState.items[line - 1] ? parsedState.items[line - 1].quantity : undefined;
         let message = '';
@@ -130,6 +218,7 @@ class CartItems extends HTMLElement {
             message = window.cartStrings.quantityError.replace('[quantity]', updatedValue);
           }
         }
+
         this.updateLiveRegions(line, message);
 
         const lineItem = document.getElementById(`CartItem-${line}`) || document.getElementById(`CartDrawer-Item-${line}`);
@@ -165,10 +254,30 @@ class CartItems extends HTMLElement {
     }, 1000);
   }
 
-  getSectionInnerHTML(html, selector) {
+  getSectionInnerHTML(html, selector = '.shopify-section') {
+    console.log("cart getInner" ,selector)
     return new DOMParser()
       .parseFromString(html, 'text/html')
       .querySelector(selector).innerHTML;
+  }
+
+  // Modified to exclude the custom upsell section upon reloading the cart
+  getSectionInnerHTMLModified(html, selector = '.shopify-section') {
+    console.log("cart getInnerModified" ,selector)
+    const dom = new DOMParser().parseFromString(html, 'text/html');
+    // Find the section element
+    const sectionEl = dom.querySelector(selector);
+    // Exclude the custom upsell section
+    const elementToExclude = sectionEl.querySelector('.custom-upsell-wrapper');
+  
+    //If the section to exclude is truthy, then remove it from the section element
+    if (elementToExclude) {
+      const contents = sectionEl.innerHTML.replace(elementToExclude.outerHTML, '');
+      return contents;
+    } else {
+      // Element to exclude does not exist, so render the entire section
+      return sectionEl.innerHTML;
+    }
   }
 
   enableLoading(line) {
