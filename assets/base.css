@@ -3010,3 +3010,19 @@ details-disclosure > details {
   animation-timing-function: ease;
   animation-name: fade;
 }
+
+.custom-subscribe-btn {
+  align-items: center;
+  background-color: transparent;
+  cursor: pointer;
+  display: flex;
+  border-radius: var(--inputs-radius);
+  height: 100%;
+  min-height: calc(var(--inputs-border-width) * 2);
+  justify-content: center;
+  font-size: 1.6rem;
+  padding: 1.5rem;
+  color: rgba(var(--color-foreground),.75);
+  letter-spacing: .1rem;
+  line-height: 1.5;
+}

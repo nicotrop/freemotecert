@@ -20,6 +20,20 @@
 
 {{ 'component-rating.css' | asset_url | stylesheet_tag }}
 
+{% style %}
+
+  .card--standard > .card__content .custom-card__info {
+  padding-left: 2rem!important;
+  }
+
+  .custom-product-border {
+    box-shadow: 0.35px 0.35px 1px 0.35px rgba(173,173,173,0.52);
+    -webkit-box-shadow: 0.35px 0.35px 1px 0.35px rgba(173,173,173,0.52);
+    -moz-box-shadow: 0.35px 0.35px 1px 0.35px rgba(173,173,173,0.52);
+  }
+
+{% endstyle %}
+
 {%- if card_product and card_product != empty -%}
   {%- liquid
     assign ratio = 1
@@ -32,7 +46,7 @@
       assign ratio = 1
     endif
   -%}
-  <div class="card-wrapper product-card-wrapper underline-links-hover">
+  <div class="card-wrapper product-card-wrapper underline-links-hover {% if outline == "full" %} custom-product-border {% endif %}">
     <div
       class="
         card
@@ -46,8 +60,8 @@
       style="--ratio-percent: {{ 1 | divided_by: ratio | times: 100 }}%;"
     >
       <div
-        class="card__inner {% if settings.card_style == 'standard' %}color-{{ settings.card_color_scheme }} gradient{% endif %}{% if card_product.featured_media or settings.card_style == 'standard' %} ratio{% endif %}"
-        style="--ratio-percent: {{ 1 | divided_by: ratio | times: 100 }}%;"
+        class="card__inner {% if outline == "img" %} custom-product-border {% endif %} {% if settings.card_style == 'standard' %}color-{{ settings.card_color_scheme }} gradient{% endif %}{% if card_product.featured_media or settings.card_style == 'standard' %} ratio{% endif %}"
+        style="--ratio-percent: {{ 1 | divided_by: ratio | times: 100 }}%; background-color: transparent;"
       >
         {%- if card_product.featured_media -%}
           <div class="card__media">
@@ -98,8 +112,8 @@
             </div>
           </div>
         {%- endif -%}
-        <div class="card__content">
-          <div class="card__information">
+        <div class="card__content custom-card__padding">
+          <div class="card__information {% if outline == "full" %} custom-product-border {% endif %}">
             <h3
               class="card__heading"
               {% if card_product.featured_media == null and settings.card_style == 'standard' %}
@@ -136,7 +150,7 @@
         </div>
       </div>
       <div class="card__content">
-        <div class="card__information">
+        <div class="card__information {% if outline == "full" %} custom-card__info {% endif %}">
           <h3
             class="card__heading{% if card_product.featured_media or settings.card_style == 'standard' %} h5{% endif %}"
             {% if card_product.featured_media or settings.card_style == 'card' %}
@@ -352,7 +366,7 @@
         style="--ratio-percent: 100%;"
       >
         <div class="card__content">
-          <div class="card__information">
+          <div class="card__information {% if outline == "full" %} custom-card__info {% endif %}">
             <h3 class="card__heading">
               <a role="link" aria-disabled="true" class="full-unstyled-link">
                 {{ 'onboarding.product_title' | t }}
@@ -362,7 +376,7 @@
         </div>
       </div>
       <div class="card__content">
-        <div class="card__information">
+        <div class="card__information {% if outline == "full" %} custom-card__info {% endif %}">
           <h3 class="card__heading{% if settings.card_style == 'standard' %} h5{% endif %}">
             <a role="link" aria-disabled="true" class="full-unstyled-link">
               {{ 'onboarding.product_title' | t }}

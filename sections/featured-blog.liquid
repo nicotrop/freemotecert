@@ -29,7 +29,12 @@
     assign posts_exceed_limit = true
     assign posts_displayed = section.settings.post_limit
   endif
+  comment 
+    Sort blog posts by published date 
+  endcomment
+  assign posts_ordered = section.settings.blog.articles | sort: 'published_at'
 -%}
+
 <div class="blog color-{{ section.settings.color_scheme }} gradient{% if section.settings.heading == blank %} no-heading{% endif %}">
   <div class="page-width-desktop isolate{% if posts_displayed < 3 %} page-width-tablet{% endif %} section-{{ section.id }}-padding">
     {%- unless section.settings.heading == blank -%}
@@ -58,7 +63,8 @@
           class="blog__posts articles-wrapper contains-card contains-card--article{% if settings.card_style == 'standard' %} contains-card--standard{% endif %} grid grid--peek grid--2-col-tablet grid--{{ section.settings.columns_desktop }}-col-desktop slider {% if posts_displayed > 2 %}slider--tablet{% else %}slider--mobile{% endif %}"
           role="list"
         >
-          {%- for article in section.settings.blog.articles limit: section.settings.post_limit -%}
+        {% comment %} Use post_order object {% endcomment %}
+          {%- for article in posts_ordered  limit: section.settings.post_limit -%}
             <li
               id="Slide-{{ section.id }}-{{ forloop.index }}"
               class="blog__post grid__item article slider__slide slider__slide--full-width"
